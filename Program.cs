@@ -1,28 +1,62 @@
-using System.Security.Cryptography;
+using FairFlip;
 
+// Parse args: [--strategy name] [--list] [count]
+string? strategyName = null;
+bool listMode = false;
 int count = 1;
-if (args.Length > 0 && (!int.TryParse(args[0], out count) || count < 1))
+
+for (int i = 0; i < args.Length; i++)
 {
-    Console.Error.WriteLine("Usage: coinflip [count]");
+    switch (args[i])
+    {
+        case "--strategy" or "-s":
+            if (i + 1 < args.Length) strategyName = args[++i];
+            else { Console.Error.WriteLine("--strategy requires a name"); return 1; }
+            break;
+        case "--list" or "-l":
+            listMode = true;
+            break;
+        default:
+            if (!int.TryParse(args[i], out count) || count < 1)
+            {
+                Console.Error.WriteLine($"Usage: fairflip [--strategy name] [--list] [count]");
+                return 1;
+            }
+            break;
+    }
+}
+
+// List available strategies
+if (listMode)
+{
+    Console.WriteLine("Available strategies:\n");
+    foreach (var f in FlipperRegistry.All)
+        Console.WriteLine($"  {f.Name,-12} {f.Description}");
+    return 0;
+}
+
+// Resolve strategy
+var flipper = strategyName is not null
+    ? FlipperRegistry.Get(strategyName)
+    : FlipperRegistry.Default;
+
+if (flipper is null)
+{
+    Console.Error.WriteLine($"Unknown strategy: {strategyName}");
+    Console.Error.WriteLine("Use --list to see available strategies.");
     return 1;
 }
 
-// Rejection sampling on a single byte to guarantee exactly 50/50.
-// Values 0-127 → Heads, 128-255 → Tails.
-// Both ranges have exactly 128 values out of 256 — no bias whatsoever.
-// Using RandomNumberGenerator (CSPRNG backed by OS entropy:
-// getrandom(2) on Linux, BCryptGenRandom on Windows).
+if (strategyName is not null || count > 1)
+    Console.WriteLine($"Strategy: {flipper.Name} — {flipper.Description}\n");
 
+// Flip
 int heads = 0, tails = 0;
-Span<byte> buf = stackalloc byte[1];
 
 for (int i = 0; i < count; i++)
 {
-    RandomNumberGenerator.Fill(buf);
-    bool isHeads = buf[0] < 128;
-
-    if (isHeads) heads++;
-    else tails++;
+    bool isHeads = flipper.Flip();
+    if (isHeads) heads++; else tails++;
 
     if (count <= 100)
         Console.WriteLine($"  Flip {i + 1}: {(isHeads ? "🪙 Heads" : "🪙 Tails")}");

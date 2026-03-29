@@ -6,5 +6,11 @@
     <StripSymbols>true</StripSymbols>
     <InvariantGlobalization>true</InvariantGlobalization>
     <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>FairFlip</RootNamespace>
   </PropertyGroup>
+
+  <!-- Keep all IFlipper implementations visible to reflection under AOT trimming -->
+  <ItemGroup>
+    <TrimmerRootAssembly Include="fairflip" />
+  </ItemGroup>
 </Project>
