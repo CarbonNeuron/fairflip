@@ -1,4 +1,4 @@
-name: Build Native AOT
+name: Build Native AOT and .NET Tool
 
 on:
   push:
@@ -6,6 +6,9 @@ on:
     tags: ['v*']
   pull_request:
     branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -34,7 +37,6 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-          dotnet-quality: 'preview'
 
       - name: Publish Native AOT
         run: dotnet publish -c Release -r ${{ matrix.rid }} -o publish
@@ -45,3 +47,77 @@ jobs:
           name: ${{ matrix.artifact }}
           path: publish/
           if-no-files-found: error
+
+  tool:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Pack .NET tool
+        shell: bash
+        run: |
+          pack_args=()
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            pack_args+=("-p:Version=${GITHUB_REF_NAME#v}")
+          fi
+          dotnet pack fairflip.csproj -c Release -o nupkg "${pack_args[@]}"
+
+      - name: Install and run tool from package
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/local-nuget.config" <<EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSources>
+              <clear />
+              <add key="local" value="$GITHUB_WORKSPACE/nupkg" />
+            </packageSources>
+          </configuration>
+          EOF
+          dotnet tool install fairflip --tool-path "$RUNNER_TEMP/fairflip-tool" --configfile "$RUNNER_TEMP/local-nuget.config"
+          "$RUNNER_TEMP/fairflip-tool/fairflip" --list
+          "$RUNNER_TEMP/fairflip-tool/fairflip" 1
+
+      - name: Upload .NET tool package
+        uses: actions/upload-artifact@v4
+        with:
+          name: fairflip-tool-nupkg
+          path: nupkg/*.nupkg
+          if-no-files-found: error
+
+  publish-tool:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build, tool]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Download .NET tool package
+        uses: actions/download-artifact@v4
+        with:
+          name: fairflip-tool-nupkg
+          path: nupkg
+
+      - name: Log in to NuGet.org
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: CarbonNeuron
+
+      - name: Publish to NuGet.org
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: dotnet nuget push nupkg/*.nupkg --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate

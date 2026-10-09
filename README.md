@@ -43,13 +43,26 @@ Ratio:   60.00 % Heads / 40.00 % Tails
 
 ## Install
 
-Grab a pre-built native binary from [Releases](https://github.com/CarbonNeuron/fairflip/releases) (no .NET runtime required), or build from source:
+Install the .NET tool from [NuGet.org](https://www.nuget.org/packages/fairflip) with the .NET 10 SDK:
+
+```bash
+dotnet tool install --global fairflip
+fairflip --list
+```
+
+To update it later, run `dotnet tool update --global fairflip`. The tool requires the .NET 10 runtime when you run it.
+
+For a self-contained native executable, grab a binary from the [GitHub Actions build artifacts](https://github.com/CarbonNeuron/fairflip/actions) or build from source:
 
 ```bash
 dotnet publish -c Release -o out
 ```
 
-Requires .NET 10 SDK for building. The output is a single native executable — no runtime dependencies.
+Building requires the .NET 10 SDK and platform native AOT prerequisites. The output is a single native executable with no .NET runtime dependency.
+
+Maintainers can create a NuGet package locally with `dotnet pack -c Release`. GitHub Actions builds and checks the package on each pull request and push to `main`. Pushing a version tag such as `v1.0.0` publishes the corresponding package to NuGet.org after the install check passes.
+
+To enable publishing, configure a NuGet.org Trusted Publishing policy for the `CarbonNeuron` account with repository owner `CarbonNeuron`, repository `fairflip`, workflow file `build.yml`, and no environment. Allow the policy to publish the `fairflip` package. The workflow uses GitHub OIDC to get a temporary publishing key; no repository API key is needed.
 
 ## Platforms
 
