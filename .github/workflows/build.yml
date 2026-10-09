@@ -31,10 +31,10 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup .NET 10
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 
@@ -42,7 +42,7 @@ jobs:
         run: dotnet publish -c Release -r ${{ matrix.rid }} -o publish
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.artifact }}
           path: publish/
@@ -52,10 +52,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Setup .NET 10
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 
@@ -85,7 +85,7 @@ jobs:
           "$RUNNER_TEMP/fairflip-tool/fairflip" 1
 
       - name: Upload .NET tool package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: fairflip-tool-nupkg
           path: nupkg/*.nupkg
@@ -101,12 +101,12 @@ jobs:
 
     steps:
       - name: Setup .NET 10
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '10.0.x'
 
       - name: Download .NET tool package
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: fairflip-tool-nupkg
           path: nupkg
