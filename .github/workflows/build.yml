@@ -96,6 +96,7 @@ jobs:
     needs: [build, tool]
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
       id-token: write
 
@@ -106,10 +107,9 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Download .NET tool package
-        uses: actions/download-artifact@v8
-        with:
-          name: fairflip-tool-nupkg
-          path: nupkg
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --name fairflip-tool-nupkg --dir nupkg
 
       - name: Log in to NuGet.org
         id: login
